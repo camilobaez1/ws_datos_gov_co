@@ -116,8 +116,9 @@ while continuar:
   page=page+1
 
 #Creación del archivo CSV con la información recolectada
+import numpy as np
+import pandas as pd
+
 filename = "open_data_colombia.csv"
-with open(filename, 'w', newline='') as csvFile:
-  writer = csv.writer(csvFile)
-  for dataRow in dataList:
-    writer.writerow(dataRow)
+df=pd.DataFrame.from_dict(dataList)
+df.to_csv(filename,index=False,encoding="utf-8")
