@@ -5,11 +5,15 @@ import csv
 from bs4 import BeautifulSoup
 import bs4
 from selenium import webdriver
+from urllib import robotparser
+import numpy as np
+import pandas as pd
 
 #Creación de función para 
 def consultaPaginaWeb(queryURL, elementList, cantidad):
   browser = webdriver.Chrome()
-  response= requests.get(queryURL)
+  headers = {"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,\*/*;q=0.8","Accept-Encoding": "gzip, deflate, sdch, br",  "Accept-Language": "en-US,en;q=0.8","Cache-Control": "no-cache","dnt": "1","Pragma": "no-cache","Upgrade-Insecure-Requests": "1","User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_3) AppleWebKit/5\37.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36"}
+  response= requests.get(queryURL,headers)
   soup = BeautifulSoup(response.text,"html.parser")
 
   #Se obtienen todos los div contenedores con nombre de clase "browse2-result", si encuentra elementos los procesa
@@ -99,26 +103,28 @@ def consultaPaginaWeb(queryURL, elementList, cantidad):
   browser.close()
   return True
 
-#Codigo principal del Scrapper
-queryUrl="https://www.datos.gov.co/browse?sortBy=newest&page="
+#Verificación del archivo robots.txt
+def verificarRobotTxt():
+  rp = robotparser.RobotFileParser()
+  rp.set_url("https://www.datos.gov.co/robots.txt")
+  rp.read()
+  return rp.can_fetch("*", "https://www.datos.gov.co/browse?sortBy=newest&page=1")
 
-dataList=[]
-headerList=["ID","Nombre","Descripción","URL","Categorias","Creado","# Visitas","Temas","Area o Dependencia",
+#Codigo principal del Scrapper
+if verificarRobotTxt():
+  queryUrl="https://www.datos.gov.co/browse?sortBy=newest&page="
+  dataList=[]
+  headerList=["ID","Nombre","Descripción","URL","Categorias","Creado","# Visitas","Temas","Area o Dependencia",
             "Nombre de la Entidad","Departamento","Municipio","Orden","Sector","Idioma","Cobertura Geográfica",
             "Frecuencia de Actualización","Categoría","Descargas","Filas","Columnas"]
-dataList.append(headerList)
-
-continuar=True
-page=1
-
-while continuar:
-  continuar=consultaPaginaWeb(queryUrl+str(page),dataList,(page-1)*10+1) #Se calcula el contador de acuerdo a la pagina actual
-  page=page+1
+  dataList.append(headerList)
+  continuar=True
+  page=1
+  while continuar:
+    continuar=consultaPaginaWeb(queryUrl+str(page),dataList,(page-1)*10+1) #Se calcula el contador de acuerdo a la pagina actual
+    page=page+1
 
 #Creación del archivo CSV con la información recolectada
-import numpy as np
-import pandas as pd
-
 filename = "open_data_colombia.csv"
 df=pd.DataFrame.from_dict(dataList)
 df.to_csv(filename,index=False,encoding="utf-8")
